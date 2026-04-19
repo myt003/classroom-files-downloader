@@ -52,3 +52,32 @@ This is mentioned here in this guide : https://developers.google.com/drive/api/q
     - CTRL +F  to look for the word "pageSize"
 
     - change the value of that variable to how many courses you want to download, it works by the newest to oldest order.
+
+ Changelog
+v2.0.0 — Contributions by @myt003
+
+2. Fixed FileNotFoundError on Windows for courses with / in their name
+Course names like SOA24/25 caused os.mkdir() to fail on Windows because / is interpreted as a path separator.
+→ Added sanitize_folder_name() which replaces all Windows-invalid characters (/ \ : * ? " < > |) with -.
+3. Fixed files not being saved in cours/ and td/ subfolders
+The original script created cours/ and td/ subdirectories but always saved files to the course root folder.
+→ download_file() now accepts a subfolder parameter and saves to the correct path.
+4. Fixed missing files due to silent KeyError skipping
+The try/except KeyError block was wrapping the entire for val in materials loop. If one material failed (e.g. a YouTube link or Google Form), the entire assignment's remaining files were silently skipped.
+→ Moved try/except inside the loop so each material is handled independently.
+5. Fixed missing files due to no pagination
+The Classroom API returns a limited number of results per page (default ~20). Courses with more than 20 announcements or assignments had the rest silently ignored.
+→ Added get_all_announcements() and get_all_coursework() which loop over nextPageToken until all items are fetched.
+6. Fixed broken duplicate-file detection on Windows
+getListOfFiles() used ch.rfind('/') to extract filenames, but Windows uses \ as the path separator, so rfind('/') returned -1 and the full path was returned instead of just the filename. This broke the "already exists" check.
+→ Replaced with os.path.basename() which works correctly on both Windows and Linux.
+7. Fixed ' sql' typo in valid() function
+A leading space in ' sql' meant .sql files never matched and were always skipped.
+→ Fixed to 'sql' and added .lower() so extensions like .PDF are handled correctly.
+✨ New Features
+8. Added support for courseWorkMaterials (teacher-posted materials)
+The original script only fetched announcements and courseWork (assignments). Teacher-posted materials — visible in the Classroom UI as standalone items with a document icon — use a separate API endpoint (courseWorkMaterials) and were never downloaded.
+→ Added get_all_coursework_materials() and download_material_files(). These files are saved to cours/.
+→ Added the required scope: classroom.courseworkmaterials.readonly.
+
+⚠️ Because a new OAuth scope was added, you must delete classroom-token.json and re-authenticate on the next run.
